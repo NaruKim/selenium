@@ -1,7 +1,57 @@
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
+import time
 
-URL = ""
 chrome_driver_path = "C:/development/chromedriver.exe"
-driver = webdriver.Chrome(executable_path=chrome_driver_path)
-driver.get(URL)
+driver = webdriver.Chrome(chrome_driver_path)
+driver.get("http://orteil.dashnet.org/experiments/cookie/")
+
+cookie = driver.find_element_by_id("cookie")
+
+items = driver.find_elements_by_css_selector("#store div")
+item_ids = [item.get_attribute("id") for item in items]
+
+timeout = time.time() + 5
+five_min = time.time() + 60*5
+
+while True:
+    cookie.click()
+
+    if time.time() > timeout:
+
+        all_prices = driver.find_elements_by_css_selector("#store b")
+        item_prices = []
+
+        for price in all_prices:
+            element_text = price.text
+            if element_text != "":
+                cost = int(element_text.split("-")[1].strip().replace(",", ""))
+                item_prices.append(cost)
+
+        cookie_upgrades = {}
+        for n in range(len(item_prices)):
+            cookie_upgrades[item_prices[n]] = item_ids[n]
+        #{15: 'buyCursor', 100: 'buyGrandma', 500: 'buyFactory', 2000: 'buyMine', 7000: 'buyShipment', 50000: 'buyAlchemy lab', 1000000: 'buyPortal', 123456789: 'buyTime machine'}
+
+        money_element = driver.find_element_by_id("money").text
+        if "," in money_element:
+            money_element = money_element.replace(",", "")
+        cookie_count = int(money_element)
+
+        affordable_upgrades = {}
+        for (cost, id) in cookie_upgrades.items():
+            if cookie_count > cost:
+                affordable_upgrades[cost] = id
+
+        highest_price_affordable_upgrade = max(affordable_upgrades)
+        print(highest_price_affordable_upgrade)
+        to_purchase_id = affordable_upgrades[highest_price_affordable_upgrade]
+
+        driver.find_element_by_id(to_purchase_id).click()
+
+        timeout = time.time() + 5
+
+    if time.time() > five_min:
+        cookie_per_s = driver.find_element_by_id("cps").text
+        break
+
+#쿠키와 시장의 차이점이 있다면, 나 말고도 다른 사람들이 구매하고 가격을 올린다는 거다. 당장 커서만 산다면, 계속해서 올라가는 비싼 쿠키를 살 수 없다. 더 오르기 전에 부동산을 사야한다.
